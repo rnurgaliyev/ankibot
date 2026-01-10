@@ -1,0 +1,20 @@
+# Telegram bot token from @BotFather
+telegram_bot_token: xxx
+
+# OpenAI API key and model
+openai_api_key: sk-xxx
+openai_model: gpt-4.1
+
+# Translation languages
+source_language: German
+target_language: Ukrainian
+
+# Authorized users (get your ID from @userinfobot)
+users:
+  123456:
+    # Use "http://anki-sync:8088" when running with docker-compose
+    # Use "http://localhost:8088" or your server IP when running manually
+    anki_sync_server: http://anki-sync:8088
+    anki_user: user
+    anki_password: pass
+    anki_deck: German

@@ -1,0 +1,15 @@
+# Runtime dependencies
+anki>=25.0
+cachetools>=5.0
+pydantic>=2.0
+pyTelegramBotAPI>=4.0
+PyYAML>=6.0
+requests>=2.0
+
+# Dev dependencies (optional, for linting/formatting)
+black>=24.0
+isort>=5.0
+mypy>=1.0
+pylint>=3.0
+types-PyYAML
+types-requests

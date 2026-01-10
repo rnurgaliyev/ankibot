@@ -1,0 +1,26 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    depends_on:
+      - anki-sync
+
+  anki-sync:
+    image: python:3.12-slim
+    restart: unless-stopped
+    command: >
+      bash -c "pip install --no-cache-dir anki &&
+      python -c 'from anki._backend import RustBackend; RustBackend.syncserver()'"
+    ports:
+      - "8088:8088"
+    volumes:
+      - anki-data:/root/.syncserver
+    environment:
+      - SYNC_USER1=${ANKI_USER:-user}:${ANKI_PASSWORD:-pass}
+      - SYNC_PORT=8088
+      - SYNC_HOST=0.0.0.0
+
+volumes:
+  anki-data:
