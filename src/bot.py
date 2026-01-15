@@ -253,10 +253,8 @@ def _format_plural(plural: str | None) -> str:
     return f" (pl. {plural})" if plural else ""
 
 
-def _format_label(word_type: str | None, label: str | None) -> str:
+def _format_label(word_type: str, label: str) -> str:
     """Format type and label (e.g., ' [noun, animal]')."""
-    if label is None:
-        return ""
     prefix = f"{word_type}, " if word_type else ""
     return f" \\[{prefix}{label}]"
 
