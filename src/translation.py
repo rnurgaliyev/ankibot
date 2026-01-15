@@ -2,7 +2,7 @@
 
 import logging
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from config import CONFIG
 from openai import openai_completion
@@ -33,6 +33,24 @@ class TranslationContext(BaseModel):
     verb_forms: GermanVerbForms | None
     translations: list[str]
     example: str
+
+    @field_validator("text", "type", "label", "example")
+    @classmethod
+    def validate_non_empty_str(cls, v: str) -> str:
+        """Validate that string fields are not empty."""
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v
+
+    @field_validator("translations")
+    @classmethod
+    def validate_non_empty_list(cls, v: list[str]) -> list[str]:
+        """Validate that translations list is not empty and items are not empty."""
+        if not v:
+            raise ValueError("Translations list cannot be empty")
+        if any(not t or not t.strip() for t in v):
+            raise ValueError("Translation items cannot be empty")
+        return v
 
 
 class AiTranslatorResponse(BaseModel):
