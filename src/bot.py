@@ -114,7 +114,7 @@ def translate(chat_id: int, request: str) -> None:
     if (
         request.count(" ") > MAX_REQUEST_SPACES
         or len(request.encode("utf-8")) > MAX_REQUEST_BYTES
-        or not all(c.isalpha() or c.isspace() for c in request)
+        or not all(c.isalnum() or c in " '-" for c in request)
     ):
         bot.send_message(
             chat_id, "Are you kidding me? 🫠 Go to Google Translate or smth."
