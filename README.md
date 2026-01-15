@@ -1,6 +1,6 @@
 # AnkiBot
 
-A Telegram bot that turns words into Anki flashcards. Send a German word, get AI-powered translations with examples, and add them to your Anki deck with one tap.
+A Telegram bot that turns words into Anki flashcards. Send a word in any language, get AI-powered translations with examples, and add them to your Anki deck with one tap.
 
 <p align="center">
   <img src="assets/telegram-bot.png" alt="Telegram bot conversation" width="300">
@@ -16,10 +16,10 @@ A Telegram bot that turns words into Anki flashcards. Send a German word, get AI
 - **Smart translations** — Uses OpenAI to find multiple meanings and contexts
 - **Grammar included** — Articles (der/die/das), plural forms, verb conjugations
 - **Example sentences** — Shows how the word is actually used
-- **Two-way cards** — Creates both German→Ukrainian and Ukrainian→German flashcards
+- **Two-way cards** — Creates both Source→Translation and Translation→Source flashcards
 - **Direct sync** — Cards go straight to your Anki sync server
 
-Built for German→Ukrainian, but works with any language pair.
+Built and heavily tested for German→Ukrainian, but in theory works with any language pair.
 
 ## Quick start with Docker
 
