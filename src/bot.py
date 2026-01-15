@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 CACHE_MAX_SIZE = 128
 CACHE_TTL_SECONDS = 86400  # 24 hours
 MAX_REQUEST_SPACES = 4
-MAX_REQUEST_LENGTH = 32
+MAX_REQUEST_BYTES = 58  # 64 (Telegram callback limit) - 6 ("retry:")
 
 CALLBACK_RETRY = "retry"
 CALLBACK_ADD_TO_ANKI = "add_anki"
@@ -113,7 +113,7 @@ def translate(chat_id: int, request: str) -> None:
     # Validate request
     if (
         request.count(" ") > MAX_REQUEST_SPACES
-        or len(request) > MAX_REQUEST_LENGTH
+        or len(request.encode("utf-8")) > MAX_REQUEST_BYTES
         or not all(c.isalpha() or c.isspace() for c in request)
     ):
         bot.send_message(
