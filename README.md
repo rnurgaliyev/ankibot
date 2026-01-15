@@ -2,6 +2,15 @@
 
 A Telegram bot that turns words into Anki flashcards. Send a German word, get AI-powered translations with examples, and add them to your Anki deck with one tap.
 
+<p align="center">
+  <img src="assets/telegram-bot.png" alt="Telegram bot conversation" width="300">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/anki-card.png" alt="Resulting Anki flashcard" width="300">
+</p>
+<p align="center">
+  <em>Send a word to the bot → Get a flashcard in Anki</em>
+</p>
+
 ## Features
 
 - **Smart translations** — Uses OpenAI to find multiple meanings and contexts
