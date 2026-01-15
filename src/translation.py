@@ -10,6 +10,11 @@ from openai import openai_completion
 logger = logging.getLogger(__name__)
 
 
+def _sanitize(text: str) -> str:
+    """Remove characters that break Telegram MD or Anki HTML."""
+    return text.translate(str.maketrans("", "", "*_`[]<>&"))
+
+
 class GermanVerbForms(BaseModel):
     """German verb conjugation forms (Präteritum and Perfekt)."""
 
@@ -106,10 +111,24 @@ def translate_ai(request: str) -> Translation:
     )
 
     result = openai_completion(prompt, system="")
-    translation = Translation(
-        request=request,
-        response=AiTranslatorResponse.model_validate_json(result),
-    )
+    response = AiTranslatorResponse.model_validate_json(result)
+
+    # Sanitize model output to prevent breaking Telegram MD / Anki HTML
+    for ctx in response.contexts:
+        ctx.text = _sanitize(ctx.text)
+        ctx.type = _sanitize(ctx.type)
+        ctx.label = _sanitize(ctx.label)
+        ctx.example = _sanitize(ctx.example)
+        ctx.translations = [_sanitize(t) for t in ctx.translations]
+        if ctx.article:
+            ctx.article = _sanitize(ctx.article)
+        if ctx.plural:
+            ctx.plural = _sanitize(ctx.plural)
+        if ctx.verb_forms:
+            ctx.verb_forms.praeteritum = _sanitize(ctx.verb_forms.praeteritum)
+            ctx.verb_forms.perfekt = _sanitize(ctx.verb_forms.perfekt)
+
+    translation = Translation(request=request, response=response)
 
     logger.info(
         "Translation complete: %s -> %d context(s)",
