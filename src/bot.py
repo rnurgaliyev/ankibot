@@ -9,7 +9,7 @@ from telebot.types import CallbackQuery, Message
 
 from anki_client import AnkiDownloadError, AnkiLoginError, AnkiSession, AnkiUploadError
 from config import CONFIG
-from translation import GermanVerbForms, Translation, TranslationContext, translate_ai
+from translation import GermanVerbForms, TranslationContext, translate_ai
 
 logger = logging.getLogger(__name__)
 
@@ -17,28 +17,19 @@ logger = logging.getLogger(__name__)
 CACHE_MAX_SIZE = 128
 CACHE_TTL_SECONDS = 86400  # 24 hours
 MAX_REQUEST_SPACES = 4
-MAX_REQUEST_BYTES = 58  # 64 (Telegram callback limit) - 6 ("retry:")
+MAX_REQUEST_LENGTH = 50  # max length of a word / short phrase to translate
 
-CALLBACK_RETRY = "retry"
 CALLBACK_ADD_TO_ANKI = "add_anki"
 
-LANGUAGE_FLAGS: dict[str, str] = {
-    "GERMAN": "🇩🇪",
-    "ENGLISH": "🇬🇧",
-    "UKRAINIAN": "🇺🇦",
-    "FRENCH": "🇫🇷",
-    "SPANISH": "🇪🇸",
-}
-
 bot = telebot.TeleBot(CONFIG.telegram_bot_token)
-cache: TTLCache[str, Translation] = TTLCache(
+cache: TTLCache[str, TranslationContext] = TTLCache(
     maxsize=CACHE_MAX_SIZE, ttl=CACHE_TTL_SECONDS
 )
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query_handler(call: CallbackQuery) -> None:
-    """Handle inline button clicks (retry translation or add to Anki)."""
+    """Handle inline button clicks (add a context to Anki)."""
     if call.message is None:
         return
 
@@ -60,16 +51,12 @@ def callback_query_handler(call: CallbackQuery) -> None:
     command = call.data[:pos]
     arg = call.data[pos + 1 :]
 
-    if command == CALLBACK_RETRY:
-        translate(chat_id, arg)
-    elif command == CALLBACK_ADD_TO_ANKI:
-        translation = cache.get(arg)
-        if translation is not None:
-            add_to_anki(chat_id, translation)
+    if command == CALLBACK_ADD_TO_ANKI:
+        context = cache.get(arg)
+        if context is not None:
+            add_to_anki(chat_id, context)
         else:
-            bot.send_message(
-                chat_id, "Translation is stale, try another one or retry this one 🙈"
-            )
+            bot.send_message(chat_id, "Translation is stale, send it again 🙈")
     else:
         logger.warning("Unknown command: %s", command)
 
@@ -126,7 +113,7 @@ def translate(chat_id: int, request: str) -> None:
     # Validate request
     if (
         request.count(" ") > MAX_REQUEST_SPACES
-        or len(request.encode("utf-8")) > MAX_REQUEST_BYTES
+        or len(request) > MAX_REQUEST_LENGTH
         or not all(c.isalnum() or c in " '-" for c in request)
     ):
         bot.send_message(
@@ -142,37 +129,35 @@ def translate(chat_id: int, request: str) -> None:
         _send_error(chat_id, "Oh no! Error happened! 😮", e)
         return
 
-    # Cache translation for later retrieval
-    translation_id = str(uuid.uuid4())
-    cache[translation_id] = translation
+    contexts = translation.response.contexts
+    if not contexts:
+        bot.send_message(chat_id, "Hmm, I couldn't find any translations 🤔")
+        return
 
-    # Build reply markup
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(
-        telebot.types.InlineKeyboardButton(
-            f'Add translations to Anki deck "{CONFIG.users[chat_id].anki_deck}"',
-            callback_data=f"{CALLBACK_ADD_TO_ANKI}:{translation_id}",
+    # One message per context, each cached under its own id with an "add" button
+    deck = CONFIG.users[chat_id].anki_deck
+    for context in contexts:
+        context_id = str(uuid.uuid4())
+        cache[context_id] = context
+
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(
+            telebot.types.InlineKeyboardButton(
+                f'Add to Anki deck "{deck}"',
+                callback_data=f"{CALLBACK_ADD_TO_ANKI}:{context_id}",
+            )
         )
-    )
-    markup.add(
-        telebot.types.InlineKeyboardButton(
-            "Retry translation",
-            callback_data=f"{CALLBACK_RETRY}:{request}",
+        bot.send_message(
+            chat_id,
+            _context_to_md(context),
+            parse_mode="MARKDOWN",
+            reply_markup=markup,
         )
-    )
-
-    bot.send_message(
-        chat_id,
-        translation_to_md(translation),
-        parse_mode="MARKDOWN",
-        reply_markup=markup,
-    )
 
 
-def add_to_anki(chat_id: int, translation: Translation) -> None:
-    """Create Anki flashcards from a translation and sync to server."""
+def add_to_anki(chat_id: int, context: TranslationContext) -> None:
+    """Create forward+reverse Anki flashcards for one context and sync to server."""
     user_config = CONFIG.users[chat_id]
-    cards_added = 0
 
     try:
         with AnkiSession(
@@ -180,28 +165,20 @@ def add_to_anki(chat_id: int, translation: Translation) -> None:
             user_config.anki_user,
             user_config.anki_password,
         ) as anki:
-            for context in translation.response.contexts:
-                # Forward card (source -> target)
-                front, back = context_to_card(context)
-                anki.add_card(user_config.anki_deck, front, back)
+            # Forward card (source -> target)
+            front, back = context_to_card(context)
+            anki.add_card(user_config.anki_deck, front, back)
 
-                # Reverse card (target -> source)
-                front, back = context_to_reverse_card(context)
-                anki.add_card(user_config.anki_deck, front, back)
-
-                cards_added += 2
+            # Reverse card (target -> source)
+            front, back = context_to_reverse_card(context)
+            anki.add_card(user_config.anki_deck, front, back)
 
             anki.sync()
 
-        logger.info(
-            "Added %d Anki cards for '%s' (user %d)",
-            cards_added,
-            translation.request,
-            chat_id,
-        )
+        logger.info("Added 2 Anki cards for '%s' (user %d)", context.text, chat_id)
         bot.send_message(
             chat_id,
-            f"Added {cards_added} Anki cards for *{translation.request}* 😎\n\n"
+            f"Added 2 Anki cards for *{context.text}* 😎\n\n"
             f"✅ Anki collection fetched\n"
             f"✅ Cards added\n"
             f"✅ Collection synced back to server\n\n"
@@ -264,27 +241,15 @@ def _format_label(word_type: str, label: str) -> str:
     return f" \\[{prefix}{label}]"
 
 
-def translation_to_md(translation: Translation) -> str:
-    """Convert translation to Markdown for Telegram."""
-    flag = LANGUAGE_FLAGS.get(CONFIG.source_language.upper(), "")
-    if flag:
-        flag += " "
-
-    lines = [f"{flag}Translation for *{translation.request}*\n"]
-
-    for ctx in translation.response.contexts:
-        # Word with article, verb forms, plural, and label
-        word_line = (
-            f"*{_format_article(ctx.article)}{ctx.text}*"
-            f"{_format_verb_forms(ctx.verb_forms)}"
-            f"{_format_plural(ctx.plural)}"
-            f"{_format_label(ctx.type, ctx.label)}"
-        )
-        lines.append(word_line)
-        lines.append(", ".join(ctx.translations))
-        lines.append(f"💬 _{ctx.example}_\n")
-
-    return "\n".join(lines).rstrip("\n")
+def _context_to_md(ctx: TranslationContext) -> str:
+    """Convert a single translation context to Markdown for Telegram."""
+    word_line = (
+        f"*{_format_article(ctx.article)}{ctx.text}*"
+        f"{_format_verb_forms(ctx.verb_forms)}"
+        f"{_format_plural(ctx.plural)}"
+        f"{_format_label(ctx.type, ctx.label)}"
+    )
+    return "\n".join([word_line, ", ".join(ctx.translations), f"💬 _{ctx.example}_"])
 
 
 def context_to_card(context: TranslationContext) -> tuple[str, str]:
