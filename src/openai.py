@@ -55,5 +55,7 @@ def openai_completion(user: str, system: str) -> str:
     response.raise_for_status()
 
     result = ChatCompletionResponse.model_validate(response.json())
+    if not result.choices:
+        raise ValueError("OpenAI API returned no choices")
     logger.debug("OpenAI API response received")
     return result.choices[0].message.content

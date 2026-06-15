@@ -15,6 +15,24 @@ def _sanitize(text: str) -> str:
     return text.translate(str.maketrans("", "", "*_`[]<>&"))
 
 
+def _strip_code_fences(text: str) -> str:
+    """Strip a surrounding Markdown code fence (```json ... ```) if present.
+
+    Models often wrap JSON output in a fenced code block despite being asked
+    not to, which breaks strict JSON parsing.
+    """
+    text = text.strip()
+    if not text.startswith("```"):
+        return text
+    # Drop the opening fence line (``` or ```json), keeping the rest.
+    text = text.split("\n", 1)[1] if "\n" in text else ""
+    # Drop the closing fence.
+    text = text.rstrip()
+    if text.endswith("```"):
+        text = text[: -len("```")]
+    return text.strip()
+
+
 class GermanVerbForms(BaseModel):
     """German verb conjugation forms (Präteritum and Perfekt)."""
 
@@ -129,7 +147,7 @@ def translate_ai(request: str) -> Translation:
     )
 
     result = openai_completion(prompt, system="")
-    response = AiTranslatorResponse.model_validate_json(result)
+    response = AiTranslatorResponse.model_validate_json(_strip_code_fences(result))
 
     # Sanitize model output to prevent breaking Telegram MD / Anki HTML
     for ctx in response.contexts:
