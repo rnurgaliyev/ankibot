@@ -108,6 +108,19 @@ def start_bot() -> None:
     )
 
 
+def _send_error(chat_id: int, intro: str, error: Exception) -> None:
+    """Send an error message as plain text.
+
+    Errors are sent without ``parse_mode`` so arbitrary exception text (which
+    may contain backticks or unbalanced Markdown) cannot break Telegram parsing
+    and cause the send itself to fail. Any send failure is logged, not raised.
+    """
+    try:
+        bot.send_message(chat_id, f"{intro}\n\n{error}")
+    except Exception as send_error:  # noqa: BLE001
+        logger.error("Failed to send error message to %d: %s", chat_id, send_error)
+
+
 def translate(chat_id: int, request: str) -> None:
     """Translate a word/phrase and send the result with action buttons."""
     # Validate request
@@ -126,11 +139,7 @@ def translate(chat_id: int, request: str) -> None:
         translation = translate_ai(request)
     except Exception as e:
         logger.error("Translation failed for '%s': %s", request, e)
-        bot.send_message(
-            chat_id,
-            f"Oh no! Error happened! 😮\n```\n{e}\n```",
-            parse_mode="MARKDOWN",
-        )
+        _send_error(chat_id, "Oh no! Error happened! 😮", e)
         return
 
     # Cache translation for later retrieval
@@ -202,35 +211,31 @@ def add_to_anki(chat_id: int, translation: Translation) -> None:
 
     except AnkiLoginError as e:
         logger.error("Anki login failed for user %d: %s", chat_id, e)
-        bot.send_message(
+        _send_error(
             chat_id,
-            f"Oh no! Could not authenticate with Anki sync server! 😮\n"
-            f"Check your username/password in config.\n```\n{e}\n```",
-            parse_mode="MARKDOWN",
+            "Oh no! Could not authenticate with Anki sync server! 😮\n"
+            "Check your username/password in config.",
+            e,
         )
     except AnkiDownloadError as e:
         logger.error("Anki download failed for user %d: %s", chat_id, e)
-        bot.send_message(
+        _send_error(
             chat_id,
-            f"Oh no! Could not download Anki collection! 😮\n"
-            f"Check if your sync server is running.\n```\n{e}\n```",
-            parse_mode="MARKDOWN",
+            "Oh no! Could not download Anki collection! 😮\n"
+            "Check if your sync server is running.",
+            e,
         )
     except AnkiUploadError as e:
         logger.error("Anki sync failed for user %d: %s", chat_id, e)
-        bot.send_message(
+        _send_error(
             chat_id,
-            f"Oh no! Could not sync Anki collection back to the server! 😮\n"
-            f"Cards may have been added locally but not synced.\n```\n{e}\n```",
-            parse_mode="MARKDOWN",
+            "Oh no! Could not sync Anki collection back to the server! 😮\n"
+            "Cards may have been added locally but not synced.",
+            e,
         )
     except Exception as e:
         logger.error("Unexpected error for user %d: %s", chat_id, e)
-        bot.send_message(
-            chat_id,
-            f"Oh no! Unexpected error! 😮\n```\n{e}\n```",
-            parse_mode="MARKDOWN",
-        )
+        _send_error(chat_id, "Oh no! Unexpected error! 😮", e)
 
 
 # --- Formatting helpers ---
