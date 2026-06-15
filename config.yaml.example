@@ -3,7 +3,7 @@ telegram_bot_token: xxx
 
 # OpenAI API key and model
 openai_api_key: sk-xxx
-openai_model: gpt-4.1
+openai_model: gpt-5.4
 
 # Translation languages
 source_language: German
