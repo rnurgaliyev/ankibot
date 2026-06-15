@@ -86,23 +86,23 @@ Your task:
 5. If the word has MULTIPLE meanings, you MUST provide separate contexts for each
 
 Provide a JSON response with this exact structure:
-{{{{
+{{
   "contexts": [
-    {{{{
+    {{
       "text": "the original word or phrase with correct spelling",
       "type": "noun/verb/adjective/adverb/etc.",
       "label": "vague category hint (e.g., 'financial', 'social', 'physical', 'building', 'mechanism')",
       "article": "der/die/das for German nouns, null otherwise",
       "plural": "plural of the original word if it is a simple noun, null otherwise",
-      "verb_forms": {{{{
+      "verb_forms": {{
         "praeteritum": "past form (e.g., machte)",
         "perfekt": "perfect form (e.g., hat gemacht, ist gegangen)"
-      }}}} OR null if not a German verb,
+      }} OR null if not a German verb,
       "translations": ["translation 1 in {target}", "translation N in {target}"],
       "example": "One example sentence in {source} that clearly demonstrates THIS SPECIFIC meaning"
-    }}}}
+    }}
   ]
-}}}}
+}}
 
 Formatting rules:
 - text: the original word or phrase with correct spelling, if it is a single word German verb - use infinitive form. If it is a single noun - make sure there is no article
