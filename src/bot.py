@@ -249,7 +249,7 @@ def _context_to_md(ctx: TranslationContext) -> str:
         f"{_format_plural(ctx.plural)}"
         f"{_format_label(ctx.type, ctx.label)}"
     )
-    return "\n".join([word_line, ", ".join(ctx.translations), f"💬 _{ctx.example}_"])
+    return "\n\n".join([word_line, ", ".join(ctx.translations), f"💬 _{ctx.example}_"])
 
 
 def context_to_card(context: TranslationContext) -> tuple[str, str]:
