@@ -1,15 +1,6 @@
 # AnkiBot
 
-A Telegram bot that turns words into Anki flashcards. Send a word in any language, get AI-powered translations with examples, and add them to your Anki deck with one tap.
-
-<p align="center">
-  <img src="assets/telegram-bot.png" alt="Telegram bot conversation" width="300">
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="assets/anki-card.png" alt="Resulting Anki flashcard" width="300">
-</p>
-<p align="center">
-  <em>Send a word to the bot → Get a flashcard in Anki</em>
-</p>
+A Telegram bot that turns words into Anki flashcards. Send a word in any language, get AI-powered translations with examples, and add the meanings you want to your Anki deck.
 
 ## Features
 
@@ -118,7 +109,7 @@ python src/main.py
 
 1. Send any word or short phrase to the bot
 2. Review the translation with meanings and examples
-3. Tap **"Add to Anki"** to create flashcards
+3. Tap **"Add to Anki"** on any meaning you want to practice
 4. Sync your Anki app to see the new cards
 
 ## Requirements

@@ -37,7 +37,7 @@ User (Telegram) → bot.py → translation.py → openai.py → OpenAI API
 
 **Key components:**
 
-- `bot.py` — Telegram bot with message and callback handlers. Uses TTLCache (24hr) to store translations by UUID
+- `bot.py` — Telegram bot with message and callback handlers. Sends one message per translation context and uses TTLCache (24hr) to store contexts by UUID for Anki callbacks
 - `translation.py` — Prompts OpenAI and parses structured responses with Pydantic
 - `anki_client.py` — `AnkiSession` context manager for sync server auth, collection download/upload, card creation
 - `openai.py` — OpenAI chat completions wrapper with Pydantic response models
